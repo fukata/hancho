@@ -11,7 +11,16 @@ db_url = make_url(os.getenv('DATABSE_URL'))
 def connect_db():
     return psycopg2.connect(database = db_url.database, user = db_url.username, password = db_url.password, host = db_url.host, port = db_url.port)
 
-@respond_to("^join (.*)", re.IGNORECASE)
+@respond_to("^help", re.IGNORECASE)
+def help(message):
+    msg = """Usage
+user:join username
+user:unjoin username
+user:list
+    """
+    message.reply(msg)
+
+@respond_to("^user:join (.*)", re.IGNORECASE)
 def user_join(message, username):
     conn = connect_db()
     cur = conn.cursor()
@@ -30,7 +39,7 @@ def user_join(message, username):
 
     conn.close()
 
-@respond_to("^unjoin (.*)", re.IGNORECASE)
+@respond_to("^user:unjoin (.*)", re.IGNORECASE)
 def user_unjoin(message, username):
     conn = connect_db()
     cur = conn.cursor()
@@ -42,5 +51,19 @@ def user_unjoin(message, username):
         cur.execute("delete from users where username = %(username)s", {"username": username})
         conn.commit()
         message.reply("Unjoined...")
+
+    conn.close()
+
+@respond_to("^user:list", re.IGNORECASE)
+def user_list(message):
+    conn = connect_db()
+    cur = conn.cursor()
+    cur.execute("select username from users")
+    rows = cur.fetchall()
+
+    msg = "total {num}\n".format(num=len(rows))
+    for row in rows:
+        msg += "- {name}\n".format(name=row[0])
+    message.reply(msg)
 
     conn.close()
